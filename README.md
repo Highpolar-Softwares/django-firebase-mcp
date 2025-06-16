@@ -11,6 +11,7 @@ Get up and running in under 5 minutes with the standalone Firebase agent for tes
 - Python 3.11+
 - Firebase project with Admin SDK
 - Git (optional)
+- Redis (optional, for persistent state management)
 
 ### 1. Clone & Setup
 
@@ -64,7 +65,45 @@ SECRET_KEY=your-secret-key-here
 
 **⚠️ Important:** Replace `your-project-id` with your actual Firebase project ID.
 
-### 5. Quick Test with Standalone Agent
+### 5. State Management Setup
+
+The Firebase MCP agent uses state management for conversation persistence. Choose one option:
+
+#### Option A: Redis (Recommended for Production)
+
+Install and run Redis on port 6379:
+
+```powershell
+# Install Redis using Chocolatey
+choco install redis-64
+
+# Or download from: https://github.com/microsoftarchive/redis/releases
+# Then run Redis server
+redis-server
+```
+
+Add to your `.env` file:
+
+```env
+# Redis Configuration
+REDIS_URL=redis://localhost:6379
+USE_REDIS=true
+```
+
+#### Option B: InMemorySaver (Quick Testing)
+
+For quick testing without Redis, the agent will automatically use InMemorySaver. No additional setup required.
+
+Add to your `.env` file:
+
+```env
+# Memory-based state (no persistence)
+USE_REDIS=false
+```
+
+**Note:** InMemorySaver doesn't persist conversations between restarts, while Redis maintains state across sessions.
+
+### 6. Quick Test with Standalone Agent
 
 Test your setup immediately with the standalone Firebase agent:
 
@@ -91,7 +130,7 @@ Try these commands:
 > quit
 ```
 
-### 6. Full Django Setup (Optional)
+### 7. Full Django Setup (Optional)
 
 For full Django integration:
 
@@ -254,6 +293,12 @@ This project includes comprehensive documentation:
 
 **Problem:** Import errors
 **Solution:** Ensure all dependencies installed: `pip install -r requirements.txt`
+
+**Problem:** Redis connection fails
+**Solution:** Verify Redis is running: `redis-cli ping` (should return "PONG")
+
+**Problem:** State not persisting between sessions
+**Solution:** Check Redis configuration or switch to Redis from InMemorySaver
 
 ## 🎯 What's Next?
 
