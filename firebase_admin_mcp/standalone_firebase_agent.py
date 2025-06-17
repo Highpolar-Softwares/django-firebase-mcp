@@ -181,7 +181,7 @@ FA1_CONFIG = {
     "prompt": FA1_PROMPT,
     "temp": 0.3,
     "model": "gpt-4",
-    "max_tokens": 2048,
+    "max_tokens": 4096,
     "top_p": 1.0,
     "frequency_penalty": 0.0,
     "presence_penalty": 0.0
