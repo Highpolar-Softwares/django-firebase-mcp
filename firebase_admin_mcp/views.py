@@ -9,6 +9,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from django.http import HttpResponse
+from django.views.decorators.csrf import csrf_exempt
 from asgiref.sync import async_to_sync
 
 # Custom JSON encoder for Firebase objects
@@ -226,6 +227,7 @@ TOOL_DESCRIPTIONS = {
 
 
 @api_view(['POST', 'GET', 'OPTIONS'])
+@csrf_exempt
 def mcp_handler(request):
     """
     Handle MCP HTTP requests directly without using FastMCP's Starlette app.
@@ -234,21 +236,43 @@ def mcp_handler(request):
     - GET requests return server info and available tools
     - POST requests handle JSON-RPC 2.0 method calls
     """
-    try:
-        # Handle CORS preflight
+    try:        # Handle CORS preflight
         if request.method == 'OPTIONS':
             response = HttpResponse('')
             response['Access-Control-Allow-Origin'] = '*'
             response['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
-            response['Access-Control-Allow-Headers'] = 'Content-Type'
-            return response
-
-        # Handle GET requests - return server info
+            response['Access-Control-Allow-Headers'] = 'Content-Type, Accept, Authorization'
+            response['Access-Control-Max-Age'] = '86400'
+            return response        # Handle GET requests - check if it's an SSE request
         if request.method == 'GET':
+            accept_header = request.headers.get('Accept', '')
+
+            # If client expects SSE, return 406 Not Acceptable since we don't support SSE
+            if 'text/event-stream' in accept_header:
+                response_data = {
+                    'error': 'SSE not supported',
+                    'message': 'This server only supports JSON-RPC 2.0 over HTTP POST',
+                    'supported_methods': ['POST with JSON-RPC 2.0']
+                }
+                response = HttpResponse(
+                    json.dumps(response_data),
+                    content_type='application/json',
+                    status=406  # Not Acceptable
+                )
+                response['Access-Control-Allow-Origin'] = '*'
+                return response
+
+            # Return server info for regular GET requests
             server_info = {
                 'name': 'Firebase MCP Server',
                 'version': '1.0.0',
                 'description': 'Firebase Admin SDK MCP Server for Django',
+                'protocol': 'JSON-RPC 2.0',
+                'transport': 'HTTP',
+                'capabilities': {
+                    'tools': True,
+                    'initialize': True
+                },
                 'tools': list(TOOL_DESCRIPTIONS.values())
             }
             response = HttpResponse(
@@ -293,10 +317,35 @@ def mcp_handler(request):
 
             method = data.get('method')
             params = data.get('params', {})
+            # Handle initialize method - required for MCP protocol
             request_id = data.get('id')
+            if method == 'initialize':
+                # Return server capabilities and info
+                response_data = {
+                    'jsonrpc': '2.0',
+                    'result': {
+                        'protocolVersion': '2024-11-05',
+                        'capabilities': {
+                            'tools': {
+                                'listChanged': False
+                            }
+                        },
+                        'serverInfo': {
+                            'name': 'Firebase MCP Server',
+                            'version': '1.0.0'
+                        }
+                    },
+                    'id': request_id
+                }
+                response = HttpResponse(
+                    json.dumps(response_data),
+                    content_type='application/json'
+                )
+                response['Access-Control-Allow-Origin'] = '*'
+                return response
 
             # Handle tools/list method
-            if method == 'tools/list':
+            elif method == 'tools/list':
                 response_data = {
                     'jsonrpc': '2.0',
                     'result': {
@@ -307,6 +356,17 @@ def mcp_handler(request):
                 response = HttpResponse(
                     json.dumps(response_data),
                     content_type='application/json'
+                )
+                response['Access-Control-Allow-Origin'] = '*'
+                return response
+
+            # Handle notifications/initialized method
+            elif method == 'notifications/initialized':
+                # This is a notification (no response needed)
+                response = HttpResponse(
+                    '',
+                    content_type='application/json',
+                    status=204  # No Content
                 )
                 response['Access-Control-Allow-Origin'] = '*'
                 return response

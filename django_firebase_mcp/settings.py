@@ -31,10 +31,10 @@ SECRET_KEY = 'django-insecure-(3c_58*ou+j^+ve0&x0kk%*$5!x*3+@@jnc(lwx$@r*kr%gy8o
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 
-CSRF_COOKIE_SECURE = True
-SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = False  # Set to False for localhost development
+SESSION_COOKIE_SECURE = False  # Set to False for localhost development
 AUTH_USER_MODEL = 'base_user.User'
 
 # Application definition
@@ -60,11 +60,10 @@ INSTALLED_APPS = [
     'allauth.account',
     'allauth.socialaccount',
     'dj_rest_auth',
-    'dj_rest_auth.registration',
-
-    # Local apps
+    'dj_rest_auth.registration',    # Local apps
     'base',
     'base_user',
+    'firebase_admin_mcp',  # Add Firebase MCP app
 ]
 
 MIDDLEWARE = [
@@ -241,7 +240,6 @@ CORS_ALLOWED_ORIGINS = [
 CORS_ALLOW_CREDENTIALS = True
 
 # Firebase MCP Configuration
-INSTALLED_APPS += ["firebase_admin_mcp"]
 SERVICE_ACCOUNT_KEY_PATH = os.getenv(
     "SERVICE_ACCOUNT_KEY_PATH", "serviceAccountKey.json")
 FIREBASE_STORAGE_BUCKET = os.getenv("FIREBASE_STORAGE_BUCKET", "")
@@ -250,3 +248,26 @@ ENABLE_AUTH = True
 ENABLE_STORAGE = True
 MCP_TRANSPORT = os.getenv("MCP_TRANSPORT", "stdio")       # "stdio" or "http"
 MCP_HTTP_PORT = int(os.getenv("MCP_HTTP_PORT", "8000"))
+
+# CORS settings for MCP
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
